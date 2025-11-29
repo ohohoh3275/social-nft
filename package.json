@@ -15,8 +15,8 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "react": "^19.0.0-rc",
-    "react-dom": "^19.0.0-rc",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "framer-motion": "^10.16.4",
     "lucide-react": "^0.292.0",
     "ethers": "^6.8.1",
