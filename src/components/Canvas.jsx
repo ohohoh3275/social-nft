@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import StickerMessage from './StickerMessage';
-import { Plus, Share2, Wallet } from 'lucide-react';
+import MessageCard from './MessageCard';
+import { Plus, Wallet } from 'lucide-react';
 import { connectWallet, mintNFT, uploadToIPFS } from '../utils/web3';
 import html2canvas from 'html2canvas';
 
@@ -9,10 +9,9 @@ const Canvas = () => {
     const [walletAddress, setWalletAddress] = useState(null);
     const [isMinting, setIsMinting] = useState(false);
     const [messages, setMessages] = useState([
-        { id: 1, text: "Congrats!", type: "post-it", position: { x: 100, y: 100 }, rotation: -5, author: "Alice" },
-        { id: 2, text: "To the moon! 🌕", type: "graffiti", position: { x: 400, y: 150 }, rotation: 10, author: "Bob" },
-        { id: 3, text: "Don't forget the snacks", type: "tape", position: { x: 200, y: 400 }, rotation: 3, author: "Charlie" },
-        { id: 4, text: "Best of luck", type: "polaroid", position: { x: 600, y: 300 }, rotation: -8, author: "Dave" },
+        { id: 1, text: "Congrats on the launch! This is amazing! 🎉", author: "Alice", timestamp: Date.now() - 3600000, replies: [] },
+        { id: 2, text: "To the moon! 🌕 Can't wait to see where this goes!", author: "Bob", timestamp: Date.now() - 7200000, replies: [] },
+        { id: 3, text: "Don't forget to celebrate with the team! You've all worked so hard.", author: "Charlie", timestamp: Date.now() - 10800000, replies: [] },
     ]);
 
     const [newMessage, setNewMessage] = useState("");
@@ -50,128 +49,135 @@ const Canvas = () => {
     const handleAddMessage = () => {
         if (!newMessage.trim()) return;
 
-        const styles = ['post-it', 'tape', 'graffiti', 'polaroid'];
-        const randomStyle = styles[Math.floor(Math.random() * styles.length)];
-        const randomX = Math.random() * (window.innerWidth - 200);
-        const randomY = Math.random() * (window.innerHeight - 200);
-        const randomRotation = Math.random() * 20 - 10;
-
         const newMsg = {
             id: Date.now(),
             text: newMessage,
-            type: randomStyle,
-            position: { x: randomX, y: randomY },
-            rotation: randomRotation,
             author: "Me",
+            timestamp: Date.now(),
+            replies: [],
         };
 
-        setMessages([...messages, newMsg]);
+        setMessages([newMsg, ...messages]);
         setNewMessage("");
     };
 
+    const handleAddReply = (messageId, replyText) => {
+        const newReply = {
+            id: Date.now(),
+            text: replyText,
+            author: "Me",
+            timestamp: Date.now(),
+        };
+
+        setMessages(messages.map(msg =>
+            msg.id === messageId
+                ? { ...msg, replies: [...msg.replies, newReply] }
+                : msg
+        ));
+    };
+
     return (
-        <div className="relative w-full h-screen bg-white overflow-hidden">
+        <div className="relative w-full min-h-screen bg-gradient-to-br from-blue-50 via-cyan-50 to-white">
             {/* Subtle Background Pattern */}
-            <div className="absolute inset-0 opacity-[0.02] pointer-events-none"
+            <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
                 style={{
-                    backgroundImage: `radial-gradient(circle at 2px 2px, #000 1px, transparent 0)`,
+                    backgroundImage: `radial-gradient(circle at 2px 2px, #0ea5e9 1px, transparent 0)`,
                     backgroundSize: '40px 40px'
                 }}>
             </div>
 
-            {/* Header / Topic */}
-            <div className="absolute top-12 left-1/2 transform -translate-x-1/2 z-10 text-center">
-                <h1 className="text-4xl md:text-5xl font-bold text-gray-800 tracking-tight px-8 py-4 
-                    bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100"
+            {/* Fixed Header - Logo and Wallet on Right */}
+            <div className="fixed top-0 right-0 z-30 p-6 flex items-center gap-4">
+                {/* Wallet Address - Left of Logo */}
+                {!walletAddress ? (
+                    <button
+                        onClick={handleConnectWallet}
+                        className="flex items-center gap-2 bg-white/80 backdrop-blur-md px-4 py-2.5 rounded-full 
+                            border border-blue-200 hover:border-blue-400 transition-all shadow-sm hover:shadow-md
+                            text-sm font-medium text-blue-600 hover:text-blue-700"
+                    >
+                        <Wallet size={16} />
+                        <span>미연결</span>
+                    </button>
+                ) : (
+                    <div className="flex items-center gap-2 bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-full 
+                        border border-blue-200 shadow-sm text-sm font-mono text-blue-700">
+                        <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                        <span>{walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}</span>
+                    </div>
+                )}
+
+                {/* Logo */}
+                <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-6 py-3 rounded-full 
+                    shadow-lg font-bold text-lg tracking-tight"
                     style={{ fontFamily: 'Poppins, sans-serif' }}>
                     {topic}
-                </h1>
-                <div className="mt-4 flex justify-center gap-3">
-                    {walletAddress && (
-                        <span className="bg-gray-100 text-gray-600 px-3 py-1.5 text-xs font-medium rounded-full 
-                            border border-gray-200 shadow-sm">
-                            Owner: {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-                        </span>
-                    )}
-                    <span className="bg-emerald-50 text-emerald-600 px-3 py-1.5 text-xs font-medium rounded-full 
-                        border border-emerald-200 shadow-sm">
-                        Status: Open
-                    </span>
                 </div>
             </div>
 
-            {/* Messages Layer */}
-            <div className="absolute inset-0">
-                {messages.map((msg) => (
-                    <StickerMessage key={msg.id} data={msg} />
-                ))}
-            </div>
-
-            {/* UI Controls (Bottom) */}
-            <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 w-[90%] max-w-md z-50">
-                <div className="bg-white/95 backdrop-blur-xl p-6 rounded-3xl shadow-2xl border border-gray-100 
-                    flex flex-col gap-5">
-
-                    {/* Message Input */}
-                    <div className="flex gap-3 w-full items-center p-4 bg-gray-50 rounded-2xl border border-gray-100 
-                        focus-within:border-gray-300 transition-all">
-                        <input
-                            type="text"
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            placeholder="Leave a message..."
-                            className="flex-1 bg-transparent border-none outline-none text-gray-700 text-base 
-                                placeholder-gray-400 font-medium"
-                            onKeyDown={(e) => e.key === 'Enter' && handleAddMessage()}
-                        />
-                        <button
-                            onClick={handleAddMessage}
-                            className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-2.5 rounded-xl 
-                                hover:shadow-lg hover:scale-105 transition-all duration-200 active:scale-95"
-                        >
-                            <Plus size={20} strokeWidth={2.5} />
-                        </button>
-                    </div>
-
-                    {/* Web3 Controls */}
-                    <div className="flex justify-between items-center pt-2">
-                        {!walletAddress ? (
+            {/* Message Input - Center Top */}
+            <div className="pt-32 pb-8">
+                <div className="max-w-2xl mx-auto px-4">
+                    <div className="bg-white/90 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-blue-100">
+                        <div className="flex gap-3 items-center">
+                            <input
+                                type="text"
+                                value={newMessage}
+                                onChange={(e) => setNewMessage(e.target.value)}
+                                placeholder="Share your thoughts..."
+                                className="flex-1 bg-blue-50/50 border border-blue-100 rounded-2xl px-5 py-3.5 text-base 
+                                    outline-none focus:border-blue-400 focus:bg-white transition-all placeholder-blue-300
+                                    text-blue-900"
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddMessage()}
+                            />
                             <button
-                                onClick={handleConnectWallet}
-                                className="flex items-center gap-2 text-sm font-semibold text-gray-600 
-                                    hover:text-blue-600 transition-colors group"
+                                onClick={handleAddMessage}
+                                disabled={!newMessage.trim()}
+                                className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-3.5 rounded-2xl 
+                                    hover:shadow-lg hover:scale-105 transition-all duration-200 active:scale-95
+                                    disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                             >
-                                <Wallet size={18} className="group-hover:animate-pulse" />
-                                Connect Wallet
+                                <Plus size={24} strokeWidth={2.5} />
                             </button>
-                        ) : (
-                            <span className="flex items-center gap-2 text-xs font-mono text-gray-500 
-                                bg-gray-50 px-3 py-2 rounded-xl border border-gray-100">
-                                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-                            </span>
-                        )}
+                        </div>
 
-                        <button
-                            onClick={handleMint}
-                            disabled={isMinting || !walletAddress}
-                            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 
-                                ${isMinting || !walletAddress
-                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                    : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-xl hover:scale-105 active:scale-95'
-                                }`}
-                        >
-                            {isMinting ? (
-                                <span className="flex items-center gap-2">
-                                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    Minting...
-                                </span>
-                            ) : (
-                                'Mint as NFT ✨'
-                            )}
-                        </button>
+                        {/* Mint Button Below Input */}
+                        <div className="mt-4 pt-4 border-t border-blue-100 flex justify-center">
+                            <button
+                                onClick={handleMint}
+                                disabled={isMinting || !walletAddress}
+                                className={`px-8 py-3 rounded-2xl text-sm font-bold transition-all duration-200 
+                                    ${isMinting || !walletAddress
+                                        ? 'bg-blue-100 text-blue-300 cursor-not-allowed'
+                                        : 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:shadow-xl hover:scale-105 active:scale-95'
+                                    }`}
+                            >
+                                {isMinting ? (
+                                    <span className="flex items-center gap-2">
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        Minting...
+                                    </span>
+                                ) : (
+                                    'Mint as NFT ✨'
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Messages Feed - Below Input */}
+            <div className="max-w-2xl mx-auto px-4 pb-12">
+                {messages.length === 0 ? (
+                    <div className="text-center py-16">
+                        <div className="text-blue-300 text-lg mb-2">No messages yet</div>
+                        <div className="text-blue-200 text-sm">Be the first to share your thoughts!</div>
+                    </div>
+                ) : (
+                    messages.map((msg) => (
+                        <MessageCard key={msg.id} data={msg} onAddReply={handleAddReply} />
+                    ))
+                )}
             </div>
         </div>
     );
