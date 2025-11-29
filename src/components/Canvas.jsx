@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import MessageCard from './MessageCard';
+import NFTPreviewModal from './NFTPreviewModal';
 import { Plus, Wallet } from 'lucide-react';
 import { connectWallet, mintNFT, uploadToIPFS } from '../utils/web3';
 import html2canvas from 'html2canvas';
@@ -9,12 +10,53 @@ const Canvas = () => {
     const [walletAddress, setWalletAddress] = useState(null);
     const [isMinting, setIsMinting] = useState(false);
     const [messages, setMessages] = useState([
-        { id: 1, text: "Congrats on the launch! This is amazing! 🎉", author: "Alice", timestamp: Date.now() - 3600000, replies: [] },
-        { id: 2, text: "To the moon! 🌕 Can't wait to see where this goes!", author: "Bob", timestamp: Date.now() - 7200000, replies: [] },
-        { id: 3, text: "Don't forget to celebrate with the team! You've all worked so hard.", author: "Charlie", timestamp: Date.now() - 10800000, replies: [] },
+        {
+            id: 1,
+            userId: 'user_alice_001',
+            username: 'Alice',
+            text: 'Congrats on the launch! This is amazing! 🎉',
+            createdAt: Date.now() - 3600000,
+            updatedAt: Date.now() - 3600000,
+            isMinted: false,
+            nftTokenId: null,
+            nftContractAddress: null,
+            replies: []
+        },
+        {
+            id: 2,
+            userId: 'user_bob_002',
+            username: 'Bob',
+            text: "To the moon! 🌕 Can't wait to see where this goes!",
+            createdAt: Date.now() - 7200000,
+            updatedAt: Date.now() - 7200000,
+            isMinted: false,
+            nftTokenId: null,
+            nftContractAddress: null,
+            replies: []
+        },
+        {
+            id: 3,
+            userId: 'user_charlie_003',
+            username: 'Charlie',
+            text: "Don't forget to celebrate with the team! You've all worked so hard.",
+            createdAt: Date.now() - 10800000,
+            updatedAt: Date.now() - 10800000,
+            isMinted: false,
+            nftTokenId: null,
+            nftContractAddress: null,
+            replies: []
+        },
     ]);
 
     const [newMessage, setNewMessage] = useState("");
+    const [nftModalOpen, setNftModalOpen] = useState(false);
+    const [selectedMessage, setSelectedMessage] = useState(null);
+
+    // Current user data (will come from authentication in production)
+    const currentUser = {
+        userId: 'user_me_current',
+        username: 'Me'
+    };
 
     const handleConnectWallet = async () => {
         const address = await connectWallet();
@@ -49,11 +91,17 @@ const Canvas = () => {
     const handleAddMessage = () => {
         if (!newMessage.trim()) return;
 
+        const now = Date.now();
         const newMsg = {
-            id: Date.now(),
+            id: now,
+            userId: currentUser.userId,
+            username: currentUser.username,
             text: newMessage,
-            author: "Me",
-            timestamp: Date.now(),
+            createdAt: now,
+            updatedAt: now,
+            isMinted: false,
+            nftTokenId: null,
+            nftContractAddress: null,
             replies: [],
         };
 
@@ -62,18 +110,62 @@ const Canvas = () => {
     };
 
     const handleAddReply = (messageId, replyText) => {
+        const now = Date.now();
         const newReply = {
-            id: Date.now(),
+            id: now,
+            userId: currentUser.userId,
+            username: currentUser.username,
             text: replyText,
-            author: "Me",
-            timestamp: Date.now(),
+            createdAt: now,
+            updatedAt: now,
         };
 
         setMessages(messages.map(msg =>
             msg.id === messageId
-                ? { ...msg, replies: [...msg.replies, newReply] }
+                ? { ...msg, replies: [...msg.replies, newReply], updatedAt: now }
                 : msg
         ));
+    };
+
+    const handleViewNFT = (messageData) => {
+        setSelectedMessage(messageData);
+        setNftModalOpen(true);
+    };
+
+    const handleTransferNFT = async (messageId, imageDataUrl) => {
+        if (!walletAddress) {
+            alert('먼저 지갑을 연결해주세요.');
+            return;
+        }
+
+        try {
+            // Upload to IPFS
+            const tokenURI = await uploadToIPFS(imageDataUrl);
+
+            // Mint NFT
+            const result = await mintNFT(tokenURI);
+
+            if (result.success) {
+                // Update message with NFT data
+                setMessages(messages.map(msg =>
+                    msg.id === messageId
+                        ? {
+                            ...msg,
+                            isMinted: true,
+                            nftTokenId: result.tokenId,
+                            nftContractAddress: result.contractAddress,
+                            updatedAt: Date.now()
+                        }
+                        : msg
+                ));
+
+                alert(`NFT가 성공적으로 민팅되었습니다! Token ID: ${result.tokenId}`);
+                setNftModalOpen(false);
+            }
+        } catch (error) {
+            console.error('NFT transfer failed:', error);
+            alert('NFT 전송에 실패했습니다.');
+        }
     };
 
     return (
@@ -140,28 +232,6 @@ const Canvas = () => {
                                 <Plus size={24} strokeWidth={2.5} />
                             </button>
                         </div>
-
-                        {/* Mint Button Below Input */}
-                        <div className="mt-4 pt-4 border-t border-blue-100 flex justify-center">
-                            <button
-                                onClick={handleMint}
-                                disabled={isMinting || !walletAddress}
-                                className={`px-8 py-3 rounded-2xl text-sm font-bold transition-all duration-200 
-                                    ${isMinting || !walletAddress
-                                        ? 'bg-blue-100 text-blue-300 cursor-not-allowed'
-                                        : 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:shadow-xl hover:scale-105 active:scale-95'
-                                    }`}
-                            >
-                                {isMinting ? (
-                                    <span className="flex items-center gap-2">
-                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                        Minting...
-                                    </span>
-                                ) : (
-                                    'Mint as NFT ✨'
-                                )}
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -175,10 +245,25 @@ const Canvas = () => {
                     </div>
                 ) : (
                     messages.map((msg) => (
-                        <MessageCard key={msg.id} data={msg} onAddReply={handleAddReply} />
+                        <MessageCard
+                            key={msg.id}
+                            data={msg}
+                            onAddReply={handleAddReply}
+                            onViewNFT={handleViewNFT}
+                            currentUser={currentUser}
+                        />
                     ))
                 )}
             </div>
+
+            {/* NFT Preview Modal */}
+            <NFTPreviewModal
+                isOpen={nftModalOpen}
+                onClose={() => setNftModalOpen(false)}
+                messageData={selectedMessage}
+                isOwner={selectedMessage?.userId === currentUser.userId}
+                onTransfer={handleTransferNFT}
+            />
         </div>
     );
 };

@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, MessageCircle, Clock } from 'lucide-react';
+import { Heart, MessageCircle, Clock, Eye } from 'lucide-react';
 import ReplyItem from './ReplyItem';
 
-const MessageCard = ({ data, onAddReply }) => {
-    const { id, text, author, timestamp, replies = [] } = data;
+const MessageCard = ({ data, onAddReply, onViewNFT, currentUser }) => {
+    const { id, text, username, createdAt, replies = [] } = data;
     const [showReplyInput, setShowReplyInput] = useState(false);
     const [replyText, setReplyText] = useState("");
+    const isOwner = data.userId === currentUser.userId;
 
     const handleReplySubmit = () => {
         if (!replyText.trim()) return;
@@ -15,9 +16,9 @@ const MessageCard = ({ data, onAddReply }) => {
         setShowReplyInput(false);
     };
 
-    const formatTime = (timestamp) => {
+    const formatTime = (createdAt) => {
         const now = Date.now();
-        const diff = now - timestamp;
+        const diff = now - createdAt;
         const minutes = Math.floor(diff / 60000);
         const hours = Math.floor(diff / 3600000);
         const days = Math.floor(diff / 86400000);
@@ -40,13 +41,13 @@ const MessageCard = ({ data, onAddReply }) => {
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-cyan-500 
                         flex items-center justify-center text-white font-semibold text-sm shadow-sm">
-                        {author.charAt(0).toUpperCase()}
+                        {username.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1">
-                        <h3 className="font-semibold text-gray-800 text-sm">{author}</h3>
+                        <h3 className="font-semibold text-gray-800 text-sm">{username}</h3>
                         <div className="flex items-center gap-1 text-xs text-gray-400">
                             <Clock size={12} />
-                            <span>{formatTime(timestamp)}</span>
+                            <span>{formatTime(createdAt)}</span>
                         </div>
                     </div>
                 </div>
@@ -71,6 +72,13 @@ const MessageCard = ({ data, onAddReply }) => {
                     <span className="text-sm font-medium">
                         Reply {replies.length > 0 && `(${replies.length})`}
                     </span>
+                </button>
+                <button
+                    onClick={() => onViewNFT(data)}
+                    className="flex items-center gap-2 hover:text-purple-500 transition-colors group ml-auto"
+                >
+                    <Eye size={20} className="group-hover:fill-purple-100 transition-colors" />
+                    <span className="text-sm font-medium">NFT 보기</span>
                 </button>
             </div>
 
